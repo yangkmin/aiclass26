@@ -1,0 +1,1118 @@
+<title>탐색 알고리즘 실험실</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@600;700&display=swap">
+<style>
+:root{
+  --paper:#F2F5F8;
+  --surface:#FFFFFF;
+  --surface-2:#E8EDF3;
+  --ink:#121A24;
+  --ink-2:#475364;
+  --ink-3:#7C8899;
+  --line:#D2DAE4;
+  --line-strong:#B4BFCD;
+  --brand:#12457F;
+  --brand-ink:#0E3765;
+  --brand-soft:#DCE8F7;
+
+  --c-open:#B26A05;        /* 오픈 리스트 */
+  --c-open-bg:#FBEBD2;
+  --c-closed:#67748A;      /* 닫힌 리스트 */
+  --c-closed-bg:#DFE4EC;
+  --c-current:#12457F;     /* 현재 테스트 */
+  --c-current-bg:#CCDFF6;
+  --c-path:#0B7A55;        /* 최종 경로 */
+  --c-path-bg:#CDEDDF;
+  --c-wall:#38434F;
+  --c-mud:#C8A15E;
+  --c-mud-bg:#F2E3C4;
+  --c-goal:#B23A2B;
+
+  --cell:34px;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(18,26,36,.06), 0 6px 18px -10px rgba(18,26,36,.28);
+  --font-h:"Noto Serif KR", "Nanum Myeongjo", serif;
+  --font-b:"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-m:"IBM Plex Mono", "IBM Plex Sans KR", monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1218;
+    --surface:#151D26;
+    --surface-2:#1D2732;
+    --ink:#E7EDF4;
+    --ink-2:#AAB6C4;
+    --ink-3:#77848F;
+    --line:#2A3541;
+    --line-strong:#3B4855;
+    --brand:#77ADEC;
+    --brand-ink:#A8CBF5;
+    --brand-soft:#16304E;
+
+    --c-open:#E8AA45;
+    --c-open-bg:#3D2C0F;
+    --c-closed:#93A0B1;
+    --c-closed-bg:#242E39;
+    --c-current:#77ADEC;
+    --c-current-bg:#143152;
+    --c-path:#45C594;
+    --c-path-bg:#0F3729;
+    --c-wall:#5B6875;
+    --c-mud:#C9A461;
+    --c-mud-bg:#3A2F17;
+    --c-goal:#E5705E;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px -12px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1218;
+  --surface:#151D26;
+  --surface-2:#1D2732;
+  --ink:#E7EDF4;
+  --ink-2:#AAB6C4;
+  --ink-3:#77848F;
+  --line:#2A3541;
+  --line-strong:#3B4855;
+  --brand:#77ADEC;
+  --brand-ink:#A8CBF5;
+  --brand-soft:#16304E;
+  --c-open:#E8AA45;
+  --c-open-bg:#3D2C0F;
+  --c-closed:#93A0B1;
+  --c-closed-bg:#242E39;
+  --c-current:#77ADEC;
+  --c-current-bg:#143152;
+  --c-path:#45C594;
+  --c-path-bg:#0F3729;
+  --c-wall:#5B6875;
+  --c-mud:#C9A461;
+  --c-mud-bg:#3A2F17;
+  --c-goal:#E5705E;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 22px -12px rgba(0,0,0,.8);
+}
+:root.big{ --cell:46px; font-size:18px; }
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--font-b); font-size:1rem; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important} }
+
+.wrap{max-width:1360px; margin:0 auto; padding:22px 20px 60px; display:flex; flex-direction:column; gap:18px}
+
+/* ---------- masthead ---------- */
+.masthead{display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  border-bottom:2px solid var(--ink); padding-bottom:14px}
+.eyebrow{margin:0 0 2px; font-size:.74rem; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--ink-3); font-family:var(--font-m); font-weight:600}
+h1{font-family:var(--font-h); font-weight:700; font-size:clamp(1.6rem,3.4vw,2.3rem); margin:0; letter-spacing:-.01em; text-wrap:balance}
+.masthead p.sub{margin:6px 0 0; color:var(--ink-2); font-size:.92rem; max-width:56ch}
+.masthead-actions{display:flex; gap:8px}
+
+/* ---------- buttons ---------- */
+button{font-family:inherit; font-size:.9rem; color:inherit; cursor:pointer}
+.btn{background:var(--surface); border:1px solid var(--line-strong); border-radius:8px;
+  padding:8px 13px; font-weight:500; transition:background .15s, border-color .15s, color .15s}
+.btn:hover{border-color:var(--brand); color:var(--brand)}
+.btn[aria-pressed="true"]{background:var(--brand); border-color:var(--brand); color:#fff}
+:root[data-theme="dark"] .btn[aria-pressed="true"], :root:not([data-theme="light"]) .btn[aria-pressed="true"]{color:#0D1218}
+.btn.primary{background:var(--brand); border-color:var(--brand); color:#fff; font-weight:600}
+:root[data-theme="dark"] .btn.primary{color:#0D1218}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn.primary{color:#0D1218} }
+.btn:disabled{opacity:.4; cursor:not-allowed}
+button:focus-visible, [tabindex]:focus-visible{outline:3px solid var(--c-open); outline-offset:2px}
+
+/* ---------- problem tabs ---------- */
+.tabs{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+.tab{background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--line-strong);
+  border-radius:var(--radius); padding:12px 14px; text-align:left; transition:.15s}
+.tab strong{display:block; font-family:var(--font-h); font-weight:600; font-size:1.02rem}
+.tab span{display:block; color:var(--ink-3); font-size:.8rem; margin-top:2px; line-height:1.45}
+.tab[aria-selected="true"]{border-left-color:var(--brand); background:var(--brand-soft)}
+.tab[aria-selected="true"] strong{color:var(--brand-ink)}
+.tab:hover{border-color:var(--line-strong)}
+
+/* ---------- algorithm bar ---------- */
+.algobar{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; display:flex; flex-direction:column; gap:12px; box-shadow:var(--shadow)}
+.algobar .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.kicker{font-family:var(--font-m); font-size:.72rem; letter-spacing:.12em; color:var(--ink-3); font-weight:600; text-transform:uppercase}
+.algo-desc{display:flex; gap:14px; align-items:baseline; flex-wrap:wrap; border-top:1px dashed var(--line); padding-top:11px}
+.algo-desc .formula{font-family:var(--font-m); font-weight:600; color:var(--brand-ink); background:var(--brand-soft);
+  padding:3px 9px; border-radius:6px; font-size:.86rem; white-space:nowrap}
+.algo-desc .txt{color:var(--ink-2); font-size:.9rem; flex:1; min-width:240px}
+
+/* ---------- workbench ---------- */
+.workbench{display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:16px; align-items:start}
+@media (max-width:1020px){ .workbench{grid-template-columns:minmax(0,1fr)} }
+.panel{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+.panel-head{display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:10px 14px; border-bottom:1px solid var(--line)}
+.panel-head h2{font-family:var(--font-h); font-size:.98rem; margin:0; font-weight:600}
+.stage-col{display:flex; flex-direction:column; gap:12px; min-width:0}
+
+.toolrow{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line)}
+.toolrow .sep{width:1px; height:22px; background:var(--line); margin:0 3px}
+.chipbtn{border:1px solid var(--line-strong); background:var(--surface); border-radius:999px; padding:5px 12px; font-size:.84rem}
+.chipbtn[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+label.toggle{display:inline-flex; align-items:center; gap:6px; font-size:.84rem; color:var(--ink-2)}
+
+.stage{padding:18px 14px; display:flex; justify-content:center; overflow-x:auto; min-height:300px}
+
+/* maze */
+.maze{display:grid; gap:2px; user-select:none; touch-action:none}
+.cell{width:var(--cell); height:var(--cell); background:var(--surface-2); border-radius:3px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-m); font-size:calc(var(--cell)*.30); font-weight:600; color:var(--ink-3);
+  transition:background .18s, color .18s;}
+.cell.wall{background:var(--c-wall); color:transparent}
+.cell.mud{background:var(--c-mud-bg); box-shadow:inset 0 0 0 2px var(--c-mud)}
+.cell.open{background:var(--c-open-bg); color:var(--c-open)}
+.cell.closed{background:var(--c-closed-bg); color:var(--c-closed)}
+.cell.path{background:var(--c-path-bg); color:var(--c-path)}
+.cell.current{background:var(--c-current-bg); color:var(--c-current); box-shadow:inset 0 0 0 3px var(--c-current)}
+.cell.start,.cell.goal{font-size:calc(var(--cell)*.42); font-family:var(--font-b); font-weight:600}
+.cell.start{color:var(--ink); box-shadow:inset 0 0 0 3px var(--ink)}
+.cell.goal{color:var(--c-goal); box-shadow:inset 0 0 0 3px var(--c-goal)}
+.cell.start.current, .cell.goal.current{box-shadow:inset 0 0 0 3px var(--c-current)}
+
+/* graph */
+svg.graph{width:100%; max-width:660px; height:auto}
+.gnode circle{fill:var(--surface-2); stroke:var(--line-strong); stroke-width:2; transition:fill .18s, stroke .18s}
+.gnode text.name{font-family:var(--font-h); font-weight:700; font-size:22px; fill:var(--ink); text-anchor:middle; dominant-baseline:central}
+.gnode.open circle{fill:var(--c-open-bg); stroke:var(--c-open)}
+.gnode.closed circle{fill:var(--c-closed-bg); stroke:var(--c-closed)}
+.gnode.path circle{fill:var(--c-path-bg); stroke:var(--c-path)}
+.gnode.current circle{fill:var(--c-current-bg); stroke:var(--c-current); stroke-width:4}
+.gedge{stroke:var(--line-strong); stroke-width:3; transition:stroke .18s}
+.gedge.path{stroke:var(--c-path); stroke-width:6}
+.gcost{font-family:var(--font-m); font-size:15px; font-weight:600; fill:var(--ink-2); text-anchor:middle}
+.gtag{font-family:var(--font-m); font-size:13px; font-weight:600; fill:var(--ink-2); text-anchor:middle}
+.gcap{font-family:var(--font-b); font-size:13px; fill:var(--ink-3); text-anchor:middle}
+
+/* puzzle */
+.puzzle-stage{display:flex; flex-direction:column; gap:16px; width:100%}
+.pz-row{display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap}
+.board{display:grid; grid-template-columns:repeat(3,1fr); gap:3px; background:var(--line); padding:3px; border-radius:6px}
+.board div{background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-m); font-weight:600; color:var(--ink)}
+.board div.blank{background:transparent; box-shadow:inset 0 0 0 1px var(--line)}
+.board.lg div{width:44px; height:44px; font-size:1.3rem}
+.board.md div{width:30px; height:30px; font-size:.95rem}
+.board.sm div{width:20px; height:20px; font-size:.7rem}
+.bcard{display:flex; flex-direction:column; gap:5px; align-items:center; padding:8px; border:1px solid var(--line);
+  border-radius:8px; background:var(--surface)}
+.bcard .cap{font-size:.74rem; color:var(--ink-3); font-family:var(--font-m)}
+.bcard.current{border-color:var(--c-current); box-shadow:inset 0 0 0 2px var(--c-current-bg)}
+.bcard.goalcard{border-color:var(--c-path)}
+.trail{display:flex; gap:6px; align-items:center; flex-wrap:wrap}
+.trail .arrow{color:var(--ink-3); font-size:.9rem}
+
+/* legend */
+.legend{display:flex; gap:14px; flex-wrap:wrap; padding:10px 14px; border-top:1px solid var(--line); font-size:.82rem; color:var(--ink-2)}
+.legend i{display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:6px; vertical-align:-2px}
+
+/* transport */
+.transport{display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:12px 14px}
+.transport .spacer{flex:1}
+.stepcount{font-family:var(--font-m); font-weight:600; font-size:.86rem; color:var(--ink-2); white-space:nowrap}
+input[type=range]{accent-color:var(--brand); width:110px}
+
+/* narration */
+.narr{border:1px solid var(--line); border-left:5px solid var(--c-current); border-radius:var(--radius);
+  background:var(--surface); padding:13px 16px; box-shadow:var(--shadow); min-height:74px}
+.narr .tagline{font-family:var(--font-m); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+.narr p{margin:4px 0 0; font-size:1.02rem; line-height:1.55}
+.narr.goal{border-left-color:var(--c-path)}
+.narr.warn{border-left-color:var(--c-goal)}
+.narr b{color:var(--brand-ink)}
+.narr code{font-family:var(--font-m); background:var(--surface-2); padding:1px 5px; border-radius:4px; font-size:.92em}
+
+/* inspector */
+.inspector{display:flex; flex-direction:column; gap:12px; min-width:0}
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.stat{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:9px 10px; text-align:center}
+.stat b{display:block; font-family:var(--font-m); font-size:1.35rem; font-weight:600; line-height:1.2; font-variant-numeric:tabular-nums}
+.stat span{font-size:.72rem; color:var(--ink-3)}
+.listbody{padding:10px 12px; max-height:190px; overflow-y:auto; display:flex; flex-wrap:wrap; gap:5px; align-content:flex-start}
+.chip{font-family:var(--font-m); font-size:.8rem; padding:2px 8px; border-radius:999px; border:1px solid transparent; font-variant-numeric:tabular-nums}
+.chip.o{background:var(--c-open-bg); color:var(--c-open); border-color:var(--c-open)}
+.chip.c{background:var(--c-closed-bg); color:var(--c-closed); border-color:var(--c-closed)}
+.chip.now{background:var(--c-current-bg); color:var(--c-current); border-color:var(--c-current)}
+.count{font-family:var(--font-m); font-size:.78rem; color:var(--ink-3)}
+.empty{color:var(--ink-3); font-size:.83rem}
+.note{padding:12px 14px; font-size:.87rem; color:var(--ink-2)}
+.note ul{margin:8px 0 0; padding-left:18px}
+.note li{margin-bottom:4px}
+.note .term{font-weight:600; color:var(--ink)}
+
+/* compare */
+.cmp-wrap{overflow-x:auto}
+table{border-collapse:collapse; width:100%; font-size:.9rem; min-width:520px}
+th,td{padding:9px 12px; text-align:right; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; font-family:var(--font-m)}
+th:first-child,td:first-child{text-align:left; font-family:var(--font-b)}
+thead th{font-size:.76rem; letter-spacing:.06em; color:var(--ink-3); text-transform:uppercase; font-family:var(--font-b); font-weight:600}
+tbody tr.best{background:var(--c-path-bg)}
+td .ok{color:var(--c-path); font-weight:600}
+td .no{color:var(--c-goal); font-weight:600}
+.cmp-note{padding:0 14px 14px; font-size:.83rem; color:var(--ink-3)}
+
+footer{border-top:1px solid var(--line); padding-top:14px; font-size:.82rem; color:var(--ink-3); display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap}
+kbd{font-family:var(--font-m); font-size:.78rem; border:1px solid var(--line-strong); border-bottom-width:2px;
+  border-radius:5px; padding:1px 6px; background:var(--surface); color:var(--ink-2)}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Ⅰ. 인공지능의 이해 · 02 인공지능과 탐색</p>
+      <h1>탐색 알고리즘 실험실</h1>
+      <p class="sub">문제와 탐색 방법을 고르면, 오픈 리스트·닫힌 리스트가 어떻게 변하며 목표 상태를 찾아가는지 한 단계씩 볼 수 있습니다.</p>
+    </div>
+    <div class="masthead-actions">
+      <button class="btn" id="bigBtn" aria-pressed="false">프로젝터 모드</button>
+      <button class="btn" id="themeBtn">화면 밝기</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="문제 상황 선택">
+    <button class="tab" role="tab" data-problem="maze" aria-selected="true">
+      <strong>격자 미로 경로 찾기</strong>
+      <span>벽과 느린 길을 직접 그려 보며 다섯 가지 탐색을 비교합니다</span>
+    </button>
+    <button class="tab" role="tab" data-problem="graph" aria-selected="false">
+      <strong>도시 방문 경로 찾기</strong>
+      <span>교과서 32~36쪽, 도시 a에서 목적지 e까지 가는 최소 시간 경로</span>
+    </button>
+    <button class="tab" role="tab" data-problem="puzzle" aria-selected="false">
+      <strong>8퍼즐</strong>
+      <span>교과서 30~31·37쪽, 빈칸을 옮겨 목표 배열을 만드는 문제</span>
+    </button>
+  </nav>
+
+  <section class="algobar">
+    <div class="row">
+      <span class="kicker">탐색 방법</span>
+      <button class="btn" data-algo="bfs" aria-pressed="true">너비 우선 탐색 BFS</button>
+      <button class="btn" data-algo="dfs" aria-pressed="false">깊이 우선 탐색 DFS</button>
+      <button class="btn" data-algo="ucs" aria-pressed="false">균일 비용 탐색</button>
+      <button class="btn" data-algo="greedy" aria-pressed="false">탐욕적 최상 우선</button>
+      <button class="btn" data-algo="astar" aria-pressed="false">A* 탐색</button>
+    </div>
+    <div class="algo-desc">
+      <span class="formula" id="algoFormula">평갓값 없음</span>
+      <span class="txt" id="algoText"></span>
+    </div>
+  </section>
+
+  <main class="workbench">
+    <div class="stage-col">
+      <div class="panel">
+        <div class="toolrow" id="toolrow"></div>
+        <div class="stage" id="stage"></div>
+        <div class="legend" id="legend"></div>
+        <div class="transport">
+          <button class="btn" id="resetBtn" title="처음으로 (R)">↺ 처음</button>
+          <button class="btn" id="prevBtn" title="이전 단계 (←)">◀ 이전</button>
+          <button class="btn primary" id="playBtn" title="자동 실행 (스페이스)">▶ 자동 실행</button>
+          <button class="btn" id="nextBtn" title="다음 단계 (→)">다음 ▶</button>
+          <button class="btn" id="endBtn" title="결과까지 건너뛰기">결과 보기 ⏭</button>
+          <div class="spacer"></div>
+          <label class="toggle" for="speed">속도</label>
+          <input type="range" id="speed" min="1" max="10" value="6">
+          <span class="stepcount" id="stepCount">0 / 0 단계</span>
+        </div>
+      </div>
+
+      <div class="narr" id="narr">
+        <span class="tagline" id="narrTag">준비</span>
+        <p id="narrText">탐색 방법을 고르고 <b>자동 실행</b> 또는 <b>다음 ▶</b>을 눌러 보세요.</p>
+      </div>
+    </div>
+
+    <aside class="inspector">
+      <div class="stats">
+        <div class="stat"><b id="stTested">0</b><span>테스트한 상태</span></div>
+        <div class="stat"><b id="stCost">–</b><span>경로 비용</span></div>
+        <div class="stat"><b id="stLen">–</b><span>이동 횟수</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>오픈 리스트</h2><span class="count" id="openCount">0개</span></div>
+        <div class="listbody" id="openList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>닫힌 리스트</h2><span class="count" id="closedCount">0개</span></div>
+        <div class="listbody" id="closedList"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>개념 정리</h2></div>
+        <div class="note" id="conceptNote"></div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>다섯 가지 탐색 방법 비교</h2>
+      <button class="btn" id="cmpBtn">현재 문제로 한 번에 비교하기</button>
+    </div>
+    <div class="cmp-wrap">
+      <table>
+        <thead><tr><th>탐색 방법</th><th>테스트한 상태 수</th><th>경로 비용</th><th>이동 횟수</th><th>최적 경로</th></tr></thead>
+        <tbody id="cmpBody"><tr><td colspan="5" style="text-align:center; color:var(--ink-3); font-family:var(--font-b)">위 버튼을 누르면 같은 문제를 다섯 가지 방법으로 각각 풀어 결과를 비교합니다.</td></tr></tbody>
+      </table>
+    </div>
+    <p class="cmp-note" id="cmpNote">‘최적 경로’는 비용이 가장 작은 경로를 찾았는지를 뜻합니다(교과서 34쪽 최적성).</p>
+  </section>
+
+  <footer>
+    <span>단축키 · <kbd>space</kbd> 자동 실행 / 멈춤 &nbsp; <kbd>←</kbd><kbd>→</kbd> 단계 이동 &nbsp; <kbd>R</kbd> 처음으로</span>
+    <span>고등학교 「인공지능 기초」 Ⅰ-02 인공지능과 탐색 수업용</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================ 상태 ============================ */
+var S = {
+  problem:'maze',
+  algo:'bfs',
+  frames:[], idx:0,
+  timer:null,
+  showValues:true,
+  tool:'wall'
+};
+
+var ALGO = {
+  bfs:{name:'너비 우선 탐색(BFS)', formula:'평갓값 없음 · 먼저 들어온 순서',
+    text:'오픈 리스트에 먼저 들어온 상태부터 꺼냅니다. 깊이(레벨)별로 가로 방향으로 넓게 퍼지며 찾습니다. 목표 상태가 있으면 반드시 찾고, 이동 횟수가 가장 적은 경로를 찾아 줍니다.',
+    why:'오픈 리스트에 <b>가장 먼저 들어온</b> 상태'},
+  dfs:{name:'깊이 우선 탐색(DFS)', formula:'평갓값 없음 · 마지막에 들어온 순서',
+    text:'가장 최근에 만든 상태부터 꺼냅니다. 한 방향으로 깊게 내려간 뒤 막히면 되돌아옵니다. 기억할 상태가 적지만, 찾은 경로가 최선이 아닐 수 있습니다.',
+    why:'오픈 리스트에 <b>가장 나중에 들어온</b> 상태'},
+  ucs:{name:'균일 비용 탐색', formula:'g(n) = 누적 비용',
+    text:'초기 상태에서 그 상태까지 오는 데 쓴 누적 비용 g(n)이 가장 작은 상태를 먼저 꺼냅니다. 비용이 모두 같다면 너비 우선 탐색과 똑같이 진행됩니다.',
+    why:'누적 비용 <b>g가 가장 작은</b> 상태'},
+  greedy:{name:'탐욕적 최상 우선 탐색', formula:'h(n) = 휴리스틱값',
+    text:'목표까지 남은 거리의 추정값 h(n)만 보고 가장 가까워 보이는 상태를 먼저 꺼냅니다. 빠르지만 지금까지 쓴 비용을 무시하므로 돌아가는 길을 고를 수 있습니다.',
+    why:'휴리스틱값 <b>h가 가장 작은</b> 상태'},
+  astar:{name:'A* 탐색', formula:'f(n) = g(n) + h(n)',
+    text:'지금까지 쓴 비용 g(n)과 앞으로 들 비용의 추정값 h(n)을 더한 f(n)이 가장 작은 상태를 먼저 꺼냅니다. 균일 비용 탐색보다 적은 상태만 살펴보고도 최적 경로를 찾습니다.',
+    why:'평갓값 <b>f = g + h 가 가장 작은</b> 상태'}
+};
+
+/* ============================ 문제 1 · 미로 ============================ */
+var MAZE_ROWS = 11, MAZE_COLS = 15, MUD_COST = 5;
+var mazeGrid, mazeStart, mazeGoal;
+
+function defaultMaze(){
+  // 0 = 빈칸, 1 = 벽, 2 = 느린 길
+  var g = [];
+  for(var r=0;r<MAZE_ROWS;r++){ g.push(new Array(MAZE_COLS).fill(0)); }
+  for(var rr=0; rr<=8; rr++){ if(rr!==4) g[rr][7]=1; }        // 세로 벽 (r=4 에 문)
+  var mud=[[3,6],[4,6],[5,6],[3,8],[4,8],[5,8],[4,7]];
+  mud.forEach(function(p){ g[p[0]][p[1]]=2; });
+  return g;
+}
+function resetMaze(){ mazeGrid = defaultMaze(); mazeStart={r:5,c:2}; mazeGoal={r:5,c:12}; }
+resetMaze();
+
+function randomMaze(){
+  mazeGrid=[];
+  for(var r=0;r<MAZE_ROWS;r++){
+    var row=[];
+    for(var c=0;c<MAZE_COLS;c++){
+      var x=Math.random();
+      row.push(x<0.20?1:(x<0.30?2:0));
+    }
+    mazeGrid.push(row);
+  }
+  mazeStart={r:5,c:1}; mazeGoal={r:5,c:13};
+  mazeGrid[mazeStart.r][mazeStart.c]=0; mazeGrid[mazeGoal.r][mazeGoal.c]=0;
+}
+
+function mazeProblem(){
+  var dirs=[[-1,0,'위쪽'],[1,0,'아래쪽'],[0,-1,'왼쪽'],[0,1,'오른쪽']];
+  var start='5,5';
+  return {
+    kind:'maze',
+    start: mazeStart.r+','+mazeStart.c,
+    goal: mazeGoal.r+','+mazeGoal.c,
+    isGoal:function(s){ return s===this.goal; },
+    neighbors:function(s){
+      var p=s.split(','), r=+p[0], c=+p[1], out=[];
+      for(var i=0;i<dirs.length;i++){
+        var nr=r+dirs[i][0], nc=c+dirs[i][1];
+        if(nr<0||nc<0||nr>=MAZE_ROWS||nc>=MAZE_COLS) continue;
+        var t=mazeGrid[nr][nc];
+        if(t===1) continue;
+        out.push({state:nr+','+nc, cost:(t===2?MUD_COST:1), move:dirs[i][2]});
+      }
+      return out;
+    },
+    h:function(s){
+      var p=s.split(',');
+      return Math.abs(+p[0]-mazeGoal.r)+Math.abs(+p[1]-mazeGoal.c);
+    },
+    label:function(s){ var p=s.split(','); return '('+p[0]+','+p[1]+')'; },
+    limit:6000
+  };
+}
+
+/* ============================ 문제 2 · 도시 그래프 ============================ */
+var CITY = {
+  pos:{a:[70,215], b:[240,72], c:[250,340], d:[420,315], e:[580,175]},
+  edges:[['a','b',5],['a','c',4],['b','c',5],['b','d',8],['b','e',9],['c','d',3],['d','e',5]],
+  h:{a:12,b:9,c:7,d:5,e:0},
+  start:'a', goal:'e'
+};
+function graphProblem(){
+  var adj={};
+  CITY.edges.forEach(function(e){
+    (adj[e[0]]=adj[e[0]]||[]).push({state:e[1],cost:e[2]});
+    (adj[e[1]]=adj[e[1]]||[]).push({state:e[0],cost:e[2]});
+  });
+  return {
+    kind:'graph',
+    start:CITY.start, goal:CITY.goal,
+    isGoal:function(s){ return s===CITY.goal; },
+    neighbors:function(s){ return (adj[s]||[]).map(function(n){ return {state:n.state, cost:n.cost, move:'도시 '+n.state}; }); },
+    h:function(s){ return CITY.h[s]; },
+    label:function(s){ return s; },
+    limit:200
+  };
+}
+
+/* ============================ 문제 3 · 8퍼즐 ============================ */
+var PZ_GOAL='123804765';
+var pzStart='283164705';           // 교과서 37쪽 활동 3 초기 상태
+var PZ_PRESETS={
+  book:'283164705',
+  easy:'123840765',
+  mid:'283104765'
+};
+function pzMoves(s){
+  var i=s.indexOf('0'), r=Math.floor(i/3), c=i%3, out=[];
+  var d=[[-1,0,'위쪽'],[1,0,'아래쪽'],[0,-1,'왼쪽'],[0,1,'오른쪽']];
+  for(var k=0;k<4;k++){
+    var nr=r+d[k][0], nc=c+d[k][1];
+    if(nr<0||nc<0||nr>2||nc>2) continue;
+    var j=nr*3+nc, a=s.split('');
+    a[i]=a[j]; a[j]='0';
+    out.push({state:a.join(''), cost:1, move:d[k][2]});
+  }
+  return out;
+}
+function puzzleProblem(){
+  return {
+    kind:'puzzle',
+    start:pzStart, goal:PZ_GOAL,
+    isGoal:function(s){ return s===PZ_GOAL; },
+    neighbors:pzMoves,
+    h:function(s){
+      var n=0;
+      for(var i=0;i<9;i++){ if(s[i]!=='0' && s[i]!==PZ_GOAL[i]) n++; }
+      return n;
+    },
+    label:function(s){ return s; },
+    maxDepth:14,
+    limit:2500
+  };
+}
+
+function buildProblem(){
+  if(S.problem==='maze') return mazeProblem();
+  if(S.problem==='graph') return graphProblem();
+  return puzzleProblem();
+}
+
+/* ============================ 탐색 엔진 ============================ */
+function snapshot(open, closed){
+  return {
+    open: open.map(function(n){ return {s:n.state, g:n.g, h:n.h, f:n.f}; }),
+    closed: closed.slice()
+  };
+}
+function nodeVal(n, algo){
+  if(algo==='ucs') return n.g;
+  if(algo==='greedy') return n.h;
+  if(algo==='astar') return n.g+n.h;
+  return n.g;
+}
+function fmtNode(n, algo, prob){
+  var L=prob.kind==='puzzle' ? '' : prob.label(n.s!==undefined?n.s:n.state);
+  var v='';
+  if(algo==='ucs') v='g='+n.g;
+  else if(algo==='greedy') v='h='+n.h;
+  else if(algo==='astar') v='f='+(n.g+n.h);
+  else v='g='+n.g;
+  return {label:L, val:v};
+}
+
+function runSearch(prob, algo){
+  var frames=[];
+  var useG=(algo==='ucs'||algo==='astar');
+  var open=[], closed=[], closedSet={}, expanded=0, solved=false, stopped=false;
+  var root={state:prob.start, g:0, h:prob.h(prob.start), parent:null, move:null, depth:0};
+  root.f=root.g+root.h;
+  open.push(root);
+
+  frames.push(Object.assign({
+    type:'init', current:null, path:null, tested:0,
+    text:'초기 상태 <b>'+(prob.kind==='puzzle'?'시작 배열':prob.label(prob.start))+'</b>을(를) 오픈 리스트에 넣고 탐색을 시작합니다.',
+    tag:'시작'
+  }, snapshot(open, closed)));
+
+  var guard=0;
+  while(open.length && guard++ < 40000){
+    if(expanded >= prob.limit){
+      stopped=true;
+      frames.push(Object.assign({
+        type:'limit', current:null, path:null, tested:closed.length,
+        text:'상태를 <b>'+closed.length+'개</b>나 테스트했지만 아직 목표를 못 찾아 여기서 멈춥니다. 상태 수가 많아질수록 탐색 시간이 급격히 늘어나는 것이 맹목적 탐색의 한계입니다(교과서 34쪽).',
+        tag:'중단'
+      }, snapshot(open, closed)));
+      break;
+    }
+    var idx=0;
+    if(algo==='bfs') idx=0;
+    else if(algo==='dfs') idx=open.length-1;
+    else{
+      var best=Infinity;
+      for(var i=0;i<open.length;i++){
+        var v=nodeVal(open[i],algo);
+        if(v<best){ best=v; idx=i; }
+      }
+    }
+    var node=open.splice(idx,1)[0];
+    var why=ALGO[algo].why;
+    var vtxt = algo==='ucs' ? ' (g='+node.g+')'
+             : algo==='greedy' ? ' (h='+node.h+')'
+             : algo==='astar' ? ' (f='+node.g+'+'+node.h+'='+(node.g+node.h)+')'
+             : '';
+    var nm = prob.kind==='puzzle' ? '이 배열' : prob.label(node.state);
+
+    frames.push(Object.assign({
+      type:'select', current:node.state, node:node, path:pathOf(node), tested:closed.length,
+      text: why+'인 <b>'+nm+'</b>'+vtxt+'을(를) 꺼내 목표 상태인지 테스트합니다.',
+      tag:'상태 선택'
+    }, snapshot(open, closed)));
+
+    if(closedSet[node.state]){
+      frames.push(Object.assign({
+        type:'skip', current:node.state, node:node, path:pathOf(node), tested:closed.length,
+        text:'<b>'+nm+'</b>은(는) 이미 테스트가 끝난 상태(닫힌 리스트)이므로 건너뜁니다.',
+        tag:'건너뜀'
+      }, snapshot(open, closed)));
+      continue;
+    }
+    if(prob.isGoal(node.state)){
+      closedSet[node.state]=1; closed.push({s:node.state,g:node.g,h:node.h});
+      var p=pathOf(node);
+      solved=true;
+      frames.push(Object.assign({
+        type:'goal', current:node.state, node:node, path:p, tested:closed.length,
+        text:'목표 상태입니다! 테스트한 상태는 모두 <b>'+closed.length+'개</b>, 찾은 경로의 비용은 <b>'+node.g+'</b>, 이동 횟수는 <b>'+(p.length-1)+'회</b>입니다.',
+        tag:'목표 상태 도착'
+      }, snapshot(open, closed)));
+      break;
+    }
+    closedSet[node.state]=1; closed.push({s:node.state,g:node.g,h:node.h});
+    expanded++;
+
+    var kids=prob.neighbors(node.state), added=[], dropped=[];
+    for(var k=0;k<kids.length;k++){
+      var kid=kids[k];
+      if(closedSet[kid.state]){ dropped.push(prob.kind==='puzzle'?kid.move:prob.label(kid.state)); continue; }
+      if(prob.maxDepth && node.depth+1>prob.maxDepth){ continue; }
+      var g2=node.g+kid.cost, ex=null;
+      for(var q=0;q<open.length;q++){ if(open[q].state===kid.state){ ex=open[q]; break; } }
+      if(ex){
+        if(useG && g2<ex.g){ ex.g=g2; ex.f=g2+ex.h; ex.parent=node; ex.move=kid.move; ex.depth=node.depth+1;
+          added.push((prob.kind==='puzzle'?kid.move:prob.label(kid.state))+'↓'); }
+        else{ dropped.push(prob.kind==='puzzle'?kid.move:prob.label(kid.state)); }
+      }else{
+        var nn={state:kid.state, g:g2, h:prob.h(kid.state), parent:node, move:kid.move, depth:node.depth+1};
+        nn.f=nn.g+nn.h;
+        open.push(nn);
+        added.push(prob.kind==='puzzle'? kid.move : prob.label(kid.state));
+      }
+    }
+    var msg='목표 상태가 아니므로 <b>'+nm+'</b>에서 갈 수 있는 자식 상태를 만들어 오픈 리스트에 넣습니다.';
+    if(added.length) msg+=' 새로 넣은 상태: <code>'+added.join(' </code><code>')+'</code>.';
+    else msg+=' 새로 넣을 상태가 없습니다.';
+    if(dropped.length) msg+=' 이미 테스트했거나 더 좋은 값이 있어 제외한 상태: <code>'+dropped.join(' </code><code>')+'</code>.';
+
+    frames.push(Object.assign({
+      type:'expand', current:node.state, node:node, path:pathOf(node), tested:closed.length,
+      children:kids.map(function(x){return x.state;}),
+      text:msg, tag:'자식 상태 생성'
+    }, snapshot(open, closed)));
+  }
+
+  if(!solved && !stopped){
+    frames.push(Object.assign({
+      type:'fail', current:null, path:null, tested:closed.length,
+      text:'오픈 리스트가 비었습니다. 이 문제에서는 목표 상태에 도달할 수 있는 경로가 없습니다.',
+      tag:'경로 없음'
+    }, snapshot(open, closed)));
+  }
+  return frames;
+}
+function pathOf(node){
+  var out=[], n=node;
+  while(n){ out.unshift(n.state); n=n.parent; }
+  return out;
+}
+function summarize(frames){
+  var last=frames[frames.length-1];
+  var goalFrame=null;
+  for(var i=frames.length-1;i>=0;i--){ if(frames[i].type==='goal'){ goalFrame=frames[i]; break; } }
+  return {
+    tested:last.tested,
+    cost: goalFrame? goalFrame.node.g : null,
+    len: goalFrame? goalFrame.path.length-1 : null,
+    stopped: last.type==='limit'
+  };
+}
+
+/* ============================ 렌더링 ============================ */
+var stage=document.getElementById('stage');
+var toolrow=document.getElementById('toolrow');
+var prob=null;
+var mazeCells=[];
+
+function rebuild(){
+  prob=buildProblem();
+  S.frames=runSearch(prob, S.algo);
+  S.idx=0;
+  buildToolrow();
+  buildStage();
+  render();
+  document.getElementById('cmpBody').innerHTML='<tr><td colspan="5" style="text-align:center; color:var(--ink-3); font-family:var(--font-b)">위 버튼을 누르면 같은 문제를 다섯 가지 방법으로 각각 풀어 결과를 비교합니다.</td></tr>';
+}
+
+function buildToolrow(){
+  var h='';
+  if(S.problem==='maze'){
+    h+='<span class="kicker">칠하기</span>'+
+       '<button class="chipbtn" data-tool="wall" aria-pressed="'+(S.tool==='wall')+'">벽</button>'+
+       '<button class="chipbtn" data-tool="mud" aria-pressed="'+(S.tool==='mud')+'">느린 길 · 비용 '+MUD_COST+'</button>'+
+       '<button class="chipbtn" data-tool="erase" aria-pressed="'+(S.tool==='erase')+'">지우개</button>'+
+       '<button class="chipbtn" data-tool="start" aria-pressed="'+(S.tool==='start')+'">출발</button>'+
+       '<button class="chipbtn" data-tool="goal" aria-pressed="'+(S.tool==='goal')+'">도착</button>'+
+       '<span class="sep"></span>'+
+       '<button class="btn" id="mazeReset">기본 미로</button>'+
+       '<button class="btn" id="mazeRandom">무작위 미로</button>';
+  }else if(S.problem==='puzzle'){
+    h+='<span class="kicker">초기 상태</span>'+
+       '<button class="chipbtn" data-pz="easy" aria-pressed="'+(pzStart===PZ_PRESETS.easy)+'">쉬움 · 2회</button>'+
+       '<button class="chipbtn" data-pz="mid" aria-pressed="'+(pzStart===PZ_PRESETS.mid)+'">보통 · 3회</button>'+
+       '<button class="chipbtn" data-pz="book" aria-pressed="'+(pzStart===PZ_PRESETS.book)+'">교과서 37쪽 · 5회</button>'+
+       '<span class="sep"></span><span class="count">휴리스틱 h(n) = 목표와 다른 자리에 있는 숫자 타일 수</span>';
+  }else{
+    h+='<span class="kicker">교과서 32쪽</span><span class="count">간선의 숫자는 이동 시간(비용), 노드 아래 h는 목적지 e까지의 직선거리 추정값</span>';
+  }
+  h+='<span class="sep"></span><label class="toggle"><input type="checkbox" id="valChk" '+(S.showValues?'checked':'')+'> 값 표시</label>';
+  toolrow.innerHTML=h;
+
+  Array.prototype.forEach.call(toolrow.querySelectorAll('[data-tool]'), function(b){
+    b.onclick=function(){ S.tool=b.dataset.tool; buildToolrow(); };
+  });
+  Array.prototype.forEach.call(toolrow.querySelectorAll('[data-pz]'), function(b){
+    b.onclick=function(){ pzStart=PZ_PRESETS[b.dataset.pz]; stop(); rebuild(); };
+  });
+  var mr=document.getElementById('mazeReset'); if(mr) mr.onclick=function(){ stop(); resetMaze(); rebuild(); };
+  var rd=document.getElementById('mazeRandom'); if(rd) rd.onclick=function(){ stop(); randomMaze(); rebuild(); };
+  var vc=document.getElementById('valChk'); if(vc) vc.onchange=function(){ S.showValues=vc.checked; render(); };
+}
+
+function buildStage(){
+  stage.innerHTML='';
+  if(S.problem==='maze') buildMaze();
+  else if(S.problem==='graph') buildGraph();
+  else buildPuzzleShell();
+  buildLegend();
+}
+
+function buildLegend(){
+  var L='';
+  function item(style, text){ return '<span><i style="'+style+'"></i>'+text+'</span>'; }
+  L+=item('background:var(--c-open-bg); box-shadow:inset 0 0 0 2px var(--c-open)','오픈 리스트(대기 중)');
+  L+=item('background:var(--c-closed-bg); box-shadow:inset 0 0 0 2px var(--c-closed)','닫힌 리스트(테스트 완료)');
+  L+=item('background:var(--c-current-bg); box-shadow:inset 0 0 0 3px var(--c-current)','지금 테스트하는 상태');
+  L+=item('background:var(--c-path-bg); box-shadow:inset 0 0 0 2px var(--c-path)','찾아낸 경로');
+  if(S.problem==='maze'){
+    L+=item('background:var(--c-wall)','벽 (지나갈 수 없음)');
+    L+=item('background:var(--c-mud-bg); box-shadow:inset 0 0 0 2px var(--c-mud)','느린 길 (비용 '+MUD_COST+')');
+    L+='<span style="color:var(--ink-3)">칸을 끌어서 벽·느린 길을 그릴 수 있습니다</span>';
+  }
+  document.getElementById('legend').innerHTML=L;
+}
+
+/* --- 미로 --- */
+function buildMaze(){
+  var grid=document.createElement('div');
+  grid.className='maze';
+  grid.style.gridTemplateColumns='repeat('+MAZE_COLS+', var(--cell))';
+  mazeCells=[];
+  for(var r=0;r<MAZE_ROWS;r++){
+    var row=[];
+    for(var c=0;c<MAZE_COLS;c++){
+      var d=document.createElement('div');
+      d.className='cell'; d.dataset.r=r; d.dataset.c=c;
+      grid.appendChild(d); row.push(d);
+    }
+    mazeCells.push(row);
+  }
+  var painting=false;
+  function paint(el){
+    var r=+el.dataset.r, c=+el.dataset.c;
+    if(S.tool==='start'){ if(mazeGrid[r][c]===1) mazeGrid[r][c]=0; mazeStart={r:r,c:c}; }
+    else if(S.tool==='goal'){ if(mazeGrid[r][c]===1) mazeGrid[r][c]=0; mazeGoal={r:r,c:c}; }
+    else{
+      if(r===mazeStart.r&&c===mazeStart.c) return;
+      if(r===mazeGoal.r&&c===mazeGoal.c) return;
+      mazeGrid[r][c]= S.tool==='wall'?1 : S.tool==='mud'?2 : 0;
+    }
+    stop();
+    prob=buildProblem(); S.frames=runSearch(prob,S.algo); S.idx=0; render();
+  }
+  grid.addEventListener('pointerdown', function(e){
+    var t=e.target.closest('.cell'); if(!t) return;
+    painting=true; paint(t); e.preventDefault();
+  });
+  grid.addEventListener('pointermove', function(e){
+    if(!painting||S.tool==='start'||S.tool==='goal') return;
+    var t=document.elementFromPoint(e.clientX,e.clientY);
+    if(t&&t.classList.contains('cell')) paint(t);
+  });
+  window.addEventListener('pointerup', function(){ painting=false; });
+  stage.appendChild(grid);
+}
+
+function renderMaze(f){
+  var openMap={}, closedMap={}, pathSet={};
+  f.open.forEach(function(n){ openMap[n.s]=n; });
+  f.closed.forEach(function(n){ closedMap[n.s]=n; });
+  var showPath = f.type==='goal';
+  if(showPath && f.path) f.path.forEach(function(s){ pathSet[s]=1; });
+
+  for(var r=0;r<MAZE_ROWS;r++){
+    for(var c=0;c<MAZE_COLS;c++){
+      var key=r+','+c, el=mazeCells[r][c], cls='cell', txt='';
+      var t=mazeGrid[r][c];
+      if(t===1) cls+=' wall';
+      else if(t===2) cls+=' mud';
+      if(closedMap[key]) cls+=' closed';
+      if(openMap[key]) cls+=' open';
+      if(pathSet[key]) cls+=' path';
+      if(f.current===key) cls+=' current';
+      if(r===mazeStart.r&&c===mazeStart.c){ cls+=' start'; txt='출발'; }
+      else if(r===mazeGoal.r&&c===mazeGoal.c){ cls+=' goal'; txt='도착'; }
+      else if(S.showValues && t!==1){
+        var n=openMap[key]||closedMap[key];
+        if(n){
+          if(S.algo==='greedy') txt=n.h;
+          else if(S.algo==='astar') txt=(n.g+n.h);
+          else txt=n.g;
+        }
+      }
+      el.className=cls;
+      el.textContent=txt;
+    }
+  }
+}
+
+/* --- 그래프 --- */
+function buildGraph(){
+  var ns='http://www.w3.org/2000/svg';
+  var svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('viewBox','0 0 660 420');
+  svg.setAttribute('class','graph');
+  svg.setAttribute('role','img');
+  svg.setAttribute('aria-label','도시 a,b,c,d,e 를 잇는 도로망 그래프');
+
+  CITY.edges.forEach(function(e){
+    var p1=CITY.pos[e[0]], p2=CITY.pos[e[1]];
+    var l=document.createElementNS(ns,'line');
+    l.setAttribute('x1',p1[0]); l.setAttribute('y1',p1[1]);
+    l.setAttribute('x2',p2[0]); l.setAttribute('y2',p2[1]);
+    l.setAttribute('class','gedge'); l.dataset.edge=e[0]+e[1];
+    svg.appendChild(l);
+    var t=document.createElementNS(ns,'text');
+    t.setAttribute('x',(p1[0]+p2[0])/2); t.setAttribute('y',(p1[1]+p2[1])/2-8);
+    t.setAttribute('class','gcost'); t.textContent=e[2];
+    svg.appendChild(t);
+  });
+  Object.keys(CITY.pos).forEach(function(k){
+    var p=CITY.pos[k];
+    var g=document.createElementNS(ns,'g');
+    g.setAttribute('class','gnode'); g.dataset.node=k;
+    var ci=document.createElementNS(ns,'circle');
+    ci.setAttribute('cx',p[0]); ci.setAttribute('cy',p[1]); ci.setAttribute('r',30);
+    g.appendChild(ci);
+    var t=document.createElementNS(ns,'text');
+    t.setAttribute('x',p[0]); t.setAttribute('y',p[1]); t.setAttribute('class','name');
+    t.textContent=k; g.appendChild(t);
+    var v=document.createElementNS(ns,'text');
+    v.setAttribute('x',p[0]); v.setAttribute('y',p[1]+50); v.setAttribute('class','gtag');
+    v.dataset.val=k; g.appendChild(v);
+    var cap=document.createElementNS(ns,'text');
+    cap.setAttribute('x',p[0]); cap.setAttribute('y',p[1]-42); cap.setAttribute('class','gcap');
+    cap.textContent = k===CITY.start?'출발 (초기 상태)' : k===CITY.goal?'목적지 (목표 상태)' : '';
+    g.appendChild(cap);
+    svg.appendChild(g);
+  });
+  stage.appendChild(svg);
+}
+function renderGraph(f){
+  var openMap={}, closedMap={}, pathSet={}, pathEdges={};
+  f.open.forEach(function(n){ openMap[n.s]=n; });
+  f.closed.forEach(function(n){ closedMap[n.s]=n; });
+  if(f.type==='goal'&&f.path){
+    f.path.forEach(function(s){ pathSet[s]=1; });
+    for(var i=0;i<f.path.length-1;i++){ pathEdges[f.path[i]+f.path[i+1]]=1; pathEdges[f.path[i+1]+f.path[i]]=1; }
+  }
+  Array.prototype.forEach.call(stage.querySelectorAll('.gnode'), function(g){
+    var k=g.dataset.node, cls='gnode';
+    if(closedMap[k]) cls+=' closed';
+    if(openMap[k]) cls+=' open';
+    if(pathSet[k]) cls+=' path';
+    if(f.current===k) cls+=' current';
+    g.setAttribute('class',cls);
+    var v=g.querySelector('[data-val]');
+    var n=openMap[k]||closedMap[k];
+    var txt='';
+    if(S.showValues){
+      if(S.algo==='greedy') txt='h='+CITY.h[k];
+      else if(S.algo==='astar') txt = n? ('f='+n.g+'+'+n.h+'='+(n.g+n.h)) : ('h='+CITY.h[k]);
+      else if(n) txt='g='+n.g;
+    }
+    v.textContent=txt;
+  });
+  Array.prototype.forEach.call(stage.querySelectorAll('.gedge'), function(l){
+    l.setAttribute('class', pathEdges[l.dataset.edge] ? 'gedge path' : 'gedge');
+  });
+}
+
+/* --- 8퍼즐 --- */
+function boardHTML(s, size){
+  var h='<div class="board '+size+'">';
+  for(var i=0;i<9;i++){
+    h += s[i]==='0' ? '<div class="blank"></div>' : '<div>'+s[i]+'</div>';
+  }
+  return h+'</div>';
+}
+function buildPuzzleShell(){
+  var d=document.createElement('div');
+  d.className='puzzle-stage'; d.id='pzStage';
+  stage.appendChild(d);
+}
+function renderPuzzle(f){
+  var el=document.getElementById('pzStage'); if(!el) return;
+  var h='';
+  var cur=f.current || prob.start;
+  var node=f.node;
+  var g=node?node.g:0, hh=prob.h(cur), fv=g+hh;
+
+  h+='<div class="pz-row">';
+  h+='<div class="bcard current">'+boardHTML(cur,'lg')+'<span class="cap">'+(f.type==='init'?'초기 상태':'지금 테스트하는 상태')+'</span>'+
+     '<span class="cap">g='+g+' · h='+hh+' · f='+fv+'</span></div>';
+  h+='<div class="bcard goalcard">'+boardHTML(PZ_GOAL,'lg')+'<span class="cap">목표 상태</span></div>';
+
+  if(f.type==='expand'&&f.children&&f.children.length){
+    h+='<div style="flex:1; min-width:240px"><span class="cap" style="display:block; margin-bottom:6px">생성된 자식 상태 (빈칸을 위·아래·왼·오른쪽으로 이동)</span><div class="pz-row">';
+    f.children.forEach(function(cs){
+      var ch=prob.h(cs), cg=g+1;
+      h+='<div class="bcard">'+boardHTML(cs,'md')+'<span class="cap">f='+cg+'+'+ch+'='+(cg+ch)+'</span></div>';
+    });
+    h+='</div></div>';
+  }
+  h+='</div>';
+
+  if(f.path&&f.path.length>1){
+    var title = f.type==='goal' ? '찾아낸 해답 경로 ('+(f.path.length-1)+'회 이동)' : '초기 상태에서 여기까지 온 길';
+    h+='<div><span class="cap" style="display:block; margin-bottom:6px">'+title+'</span><div class="trail">';
+    f.path.forEach(function(s,i){
+      if(i) h+='<span class="arrow">→</span>';
+      h+='<div class="bcard" style="padding:5px">'+boardHTML(s,'sm')+'</div>';
+    });
+    h+='</div></div>';
+  }
+
+  if(f.open.length){
+    var shown=f.open.slice().sort(function(a,b){
+      if(S.algo==='greedy') return a.h-b.h;
+      if(S.algo==='astar') return (a.g+a.h)-(b.g+b.h);
+      return a.g-b.g;
+    }).slice(0,10);
+    h+='<div><span class="cap" style="display:block; margin-bottom:6px">오픈 리스트에서 기다리는 상태 '+
+       (f.open.length>10?'(값이 좋은 10개만 표시 · 전체 '+f.open.length+'개)':'('+f.open.length+'개)')+'</span><div class="pz-row">';
+    shown.forEach(function(n){
+      var v = S.algo==='greedy'?('h='+n.h) : S.algo==='astar'?('f='+(n.g+n.h)) : ('g='+n.g);
+      h+='<div class="bcard" style="padding:5px">'+boardHTML(n.s,'sm')+'<span class="cap">'+v+'</span></div>';
+    });
+    h+='</div></div>';
+  }
+  el.innerHTML=h;
+}
+
+/* --- 공통 패널 --- */
+function render(){
+  var f=S.frames[S.idx];
+  if(!f) return;
+  if(S.problem==='maze') renderMaze(f);
+  else if(S.problem==='graph') renderGraph(f);
+  else renderPuzzle(f);
+
+  var narr=document.getElementById('narr');
+  narr.className='narr'+(f.type==='goal'?' goal':'')+((f.type==='limit'||f.type==='fail')?' warn':'');
+  document.getElementById('narrTag').textContent=f.tag;
+  document.getElementById('narrText').innerHTML=f.text;
+  document.getElementById('stepCount').textContent=(S.idx)+' / '+(S.frames.length-1)+' 단계';
+
+  document.getElementById('stTested').textContent=f.tested;
+  var goalF = f.type==='goal' ? f : null;
+  document.getElementById('stCost').textContent = goalF ? goalF.node.g : '–';
+  document.getElementById('stLen').textContent = goalF ? (goalF.path.length-1)+'회' : '–';
+
+  var ol=document.getElementById('openList'), cl=document.getElementById('closedList');
+  var oh='';
+  var sorted=f.open.slice();
+  if(S.algo==='ucs') sorted.sort(function(a,b){return a.g-b.g;});
+  else if(S.algo==='greedy') sorted.sort(function(a,b){return a.h-b.h;});
+  else if(S.algo==='astar') sorted.sort(function(a,b){return (a.g+a.h)-(b.g+b.h);});
+  sorted.slice(0,40).forEach(function(n){
+    var v = S.algo==='greedy'?('h'+n.h) : S.algo==='astar'?('f'+(n.g+n.h)) : (''+n.g);
+    var lb = S.problem==='puzzle' ? n.s.replace(/0/,'_') : prob.label(n.s);
+    oh+='<span class="chip o">'+lb+' <b>'+v+'</b></span>';
+  });
+  if(f.open.length>40) oh+='<span class="count">외 '+(f.open.length-40)+'개</span>';
+  ol.innerHTML=oh||'<span class="empty">비어 있음</span>';
+  document.getElementById('openCount').textContent=f.open.length+'개';
+
+  var ch='';
+  f.closed.slice(-40).forEach(function(n){
+    var lb = S.problem==='puzzle' ? n.s.replace(/0/,'_') : prob.label(n.s);
+    ch+='<span class="chip '+(n.s===f.current?'now':'c')+'">'+lb+'</span>';
+  });
+  if(f.closed.length>40) ch='<span class="count">앞의 '+(f.closed.length-40)+'개 생략</span>'+ch;
+  cl.innerHTML=ch||'<span class="empty">비어 있음</span>';
+  document.getElementById('closedCount').textContent=f.closed.length+'개';
+
+  document.getElementById('prevBtn').disabled=(S.idx===0);
+  document.getElementById('nextBtn').disabled=(S.idx>=S.frames.length-1);
+  document.getElementById('endBtn').disabled=(S.idx>=S.frames.length-1);
+}
+
+function renderConcept(){
+  var a=ALGO[S.algo];
+  var extra='';
+  if(S.algo==='bfs') extra='<li><span class="term">완전성</span> 목표가 있으면 반드시 찾습니다.</li><li><span class="term">최적성</span> 이동 횟수 기준으로는 최적, 비용 기준으로는 최적이 아닐 수 있습니다.</li>';
+  if(S.algo==='dfs') extra='<li><span class="term">장점</span> 기억해야 할 상태(오픈 리스트)가 적습니다.</li><li><span class="term">단점</span> 먼저 찾은 경로가 최적이 아닐 수 있습니다.</li>';
+  if(S.algo==='ucs') extra='<li><span class="term">g(n)</span> 초기 상태에서 현재 상태까지의 누적 비용</li><li>오픈 리스트에 같은 상태가 있으면 <span class="term">비용이 작은 쪽만</span> 남깁니다.</li>';
+  if(S.algo==='greedy') extra='<li><span class="term">h(n)</span> 현재 상태에서 목표까지 드는 비용의 추정값(경험적 지식)</li><li>지금까지 쓴 비용을 보지 않으므로 최적 경로를 놓칠 수 있습니다.</li>';
+  if(S.algo==='astar') extra='<li><span class="term">f(n)=g(n)+h(n)</span> 최종 비용 추정치</li><li>균일 비용 탐색보다 <span class="term">적은 상태만 테스트</span>하고도 최적 경로를 찾습니다.</li>';
+  document.getElementById('conceptNote').innerHTML=
+    '<p style="margin:0"><span class="term">'+a.name+'</span> — '+a.text+'</p><ul>'+extra+
+    '<li><span class="term">오픈 리스트</span> 아직 테스트하지 않은 후보 상태들의 대기실</li>'+
+    '<li><span class="term">닫힌 리스트</span> 테스트가 끝난 상태들</li></ul>';
+  document.getElementById('algoFormula').textContent=a.formula;
+  document.getElementById('algoText').innerHTML=a.text;
+}
+
+/* ============================ 재생 제어 ============================ */
+function speedMs(){ var v=+document.getElementById('speed').value; return 620-(v-1)*62; }
+function play(){
+  if(S.timer) return;
+  if(S.idx>=S.frames.length-1) S.idx=0;
+  document.getElementById('playBtn').textContent='⏸ 멈춤';
+  S.timer=setInterval(function(){
+    if(S.idx>=S.frames.length-1){ stop(); return; }
+    S.idx++; render();
+  }, speedMs());
+}
+function stop(){
+  if(S.timer){ clearInterval(S.timer); S.timer=null; }
+  var b=document.getElementById('playBtn'); if(b) b.textContent='▶ 자동 실행';
+}
+function togglePlay(){ S.timer?stop():play(); }
+function step(d){ stop(); S.idx=Math.max(0,Math.min(S.frames.length-1,S.idx+d)); render(); }
+
+/* ============================ 비교 실험 ============================ */
+function compare(){
+  var order=['bfs','dfs','ucs','greedy','astar'];
+  var p=buildProblem(), rows=[], bestCost=Infinity;
+  order.forEach(function(a){
+    var sum=summarize(runSearch(p,a));
+    if(sum.cost!==null && sum.cost<bestCost) bestCost=sum.cost;
+    rows.push({a:a, s:sum});
+  });
+  var html='';
+  rows.forEach(function(r){
+    var s=r.s;
+    var optimal = s.cost!==null && s.cost===bestCost;
+    html+='<tr'+(optimal?' class="best"':'')+'>'+
+      '<td>'+ALGO[r.a].name+'</td>'+
+      '<td>'+s.tested+'</td>'+
+      '<td>'+(s.cost===null?(s.stopped?'중단':'실패'):s.cost)+'</td>'+
+      '<td>'+(s.len===null?'–':s.len+'회')+'</td>'+
+      '<td>'+(s.cost===null?'–':(optimal?'<span class="ok">○</span>':'<span class="no">×</span>'))+'</td></tr>';
+  });
+  document.getElementById('cmpBody').innerHTML=html;
+  document.getElementById('cmpNote').textContent =
+    bestCost===Infinity ? '이 문제에서는 목표 상태에 도달하지 못했습니다. 벽을 지우거나 다른 초기 상태를 골라 보세요.'
+    : '가장 작은 경로 비용은 '+bestCost+'입니다. 테스트한 상태 수가 적으면서 비용도 최소인 방법이 가장 효율적인 탐색입니다.';
+}
+
+/* ============================ 이벤트 ============================ */
+Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(t){
+  t.onclick=function(){
+    stop();
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function(x){ x.setAttribute('aria-selected', x===t); });
+    S.problem=t.dataset.problem;
+    rebuild();
+  };
+});
+Array.prototype.forEach.call(document.querySelectorAll('[data-algo]'), function(b){
+  b.onclick=function(){
+    stop();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-algo]'), function(x){ x.setAttribute('aria-pressed', x===b); });
+    S.algo=b.dataset.algo;
+    renderConcept();
+    prob=buildProblem(); S.frames=runSearch(prob,S.algo); S.idx=0; render();
+  };
+});
+document.getElementById('playBtn').onclick=togglePlay;
+document.getElementById('nextBtn').onclick=function(){ step(1); };
+document.getElementById('prevBtn').onclick=function(){ step(-1); };
+document.getElementById('resetBtn').onclick=function(){ stop(); S.idx=0; render(); };
+document.getElementById('endBtn').onclick=function(){ stop(); S.idx=S.frames.length-1; render(); };
+document.getElementById('speed').oninput=function(){ if(S.timer){ stop(); play(); } };
+document.getElementById('cmpBtn').onclick=compare;
+document.getElementById('bigBtn').onclick=function(){
+  var on=document.documentElement.classList.toggle('big');
+  this.setAttribute('aria-pressed', on);
+};
+document.getElementById('themeBtn').onclick=function(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  var dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var next = cur ? (cur==='dark'?'light':'dark') : (dark?'light':'dark');
+  document.documentElement.setAttribute('data-theme', next);
+};
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); step(1); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); step(-1); }
+  else if(e.key==='r'||e.key==='R'){ stop(); S.idx=0; render(); }
+});
+
+renderConcept();
+rebuild();
+})();
+</script>
